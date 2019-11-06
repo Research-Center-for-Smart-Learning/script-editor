@@ -1,4 +1,4 @@
-# script_editor
+# script-editor
 
 ## Project setup
 ```
