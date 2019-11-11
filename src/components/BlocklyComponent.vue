@@ -1,7 +1,21 @@
 <template>
-  <div>
-    <div class="blocklyDiv" ref="blocklyDiv">
-    </div>
+  <div class="blockly-editor">
+    <v-row>
+      <v-col cols="4" class="offset-1">
+        <v-text-field label="Script Name"/>
+      </v-col>
+      <v-col>
+        <v-tooltip bottom v-for="item in button_items" :key="item.text">
+          <template v-slot:activator="{ on: tooltip }">
+            <v-btn icon x-large v-on="{ ...tooltip }" @click="method(item.method);">
+              <v-icon x-large>{{ item.icon }}</v-icon>
+            </v-btn>
+          </template>
+          <span>{{ item.text }}</span>
+        </v-tooltip>
+      </v-col>
+    </v-row>
+    <div class="blocklyDiv" ref="blocklyDiv"></div>
     <xml ref="blocklyToolbox" style="display:none">
       <slot></slot>
     </xml>
@@ -9,29 +23,6 @@
 </template>
 
 <script>
-/**
- * @license
- *
- * Copyright 2019 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-/**
- * @fileoverview Blockly Vue Component.
- * @author samelh@google.com (Sam El-Husseini)
- */
-
 import Blockly from 'blockly';
 
 export default {
@@ -39,20 +30,385 @@ export default {
   props: ['options'],
   data: () => ({
     workspace: null,
+    button_items: [
+      { icon: 'play_circle_filled', text: '運行', method: ['run', '123', '456'] },
+      { icon: 'save', text: '儲存', method: ['save'] },
+      { icon: 'bug_report', text: '偵錯', method: ['debug'] },
+      { icon: 'add_circle', text: '新增檔案', method: ['addFile'] },
+      { icon: 'folder_open', text: '開啟舊檔', method: ['openFile'] },
+      { icon: 'save_alt', text: '另存新檔', method: ['saveFileAs'] },
+    ],
   }),
   mounted() {
-    let options = this.$props.options || {}; // eslint-disable-line prefer-const
-    if (!options.toolbox) {
-      options.toolbox = this.$refs.blocklyToolbox;
-    }
+    const options = this.$props.options || {
+      grid: {
+        spacing: 25,
+        length: 3,
+        colour: '#ccc',
+        snap: true,
+      },
+      toolbox:
+      `<xml xmlns="https://developers.google.com/blockly/xml" id="toolbox" style="display: none">
+        <category name="Logic" colour="%{BKY_LOGIC_HUE}">
+          <block type="controls_if"></block>
+          <block type="logic_compare"></block>
+          <block type="logic_operation"></block>
+          <block type="logic_negate"></block>
+          <block type="logic_boolean"></block>
+          <block type="logic_null"></block>
+          <block type="logic_ternary"></block>
+        </category>
+        <category name="Loops" colour="%{BKY_LOOPS_HUE}">
+          <block type="controls_repeat_ext">
+            <value name="TIMES">
+              <shadow type="math_number">
+                <field name="NUM">10</field>
+              </shadow>
+            </value>
+          </block>
+          <block type="controls_whileUntil"></block>
+          <block type="controls_for">
+            <value name="FROM">
+              <shadow type="math_number">
+                <field name="NUM">1</field>
+              </shadow>
+            </value>
+            <value name="TO">
+              <shadow type="math_number">
+                <field name="NUM">10</field>
+              </shadow>
+            </value>
+            <value name="BY">
+              <shadow type="math_number">
+                <field name="NUM">1</field>
+              </shadow>
+            </value>
+          </block>
+          <block type="controls_forEach"></block>
+          <block type="controls_flow_statements"></block>
+        </category>
+        <category name="Math" colour="%{BKY_MATH_HUE}">
+          <block type="math_number">
+            <field name="NUM">123</field>
+          </block>
+          <block type="math_arithmetic">
+            <value name="A">
+              <shadow type="math_number">
+                <field name="NUM">1</field>
+              </shadow>
+            </value>
+            <value name="B">
+              <shadow type="math_number">
+                <field name="NUM">1</field>
+              </shadow>
+            </value>
+          </block>
+          <block type="math_single">
+            <value name="NUM">
+              <shadow type="math_number">
+                <field name="NUM">9</field>
+              </shadow>
+            </value>
+          </block>
+          <block type="math_trig">
+            <value name="NUM">
+              <shadow type="math_number">
+                <field name="NUM">45</field>
+              </shadow>
+            </value>
+          </block>
+          <block type="math_constant"></block>
+          <block type="math_number_property">
+            <value name="NUMBER_TO_CHECK">
+              <shadow type="math_number">
+                <field name="NUM">0</field>
+              </shadow>
+            </value>
+          </block>
+          <block type="math_round">
+            <value name="NUM">
+              <shadow type="math_number">
+                <field name="NUM">3.1</field>
+              </shadow>
+            </value>
+          </block>
+          <block type="math_on_list"></block>
+          <block type="math_modulo">
+            <value name="DIVIDEND">
+              <shadow type="math_number">
+                <field name="NUM">64</field>
+              </shadow>
+            </value>
+            <value name="DIVISOR">
+              <shadow type="math_number">
+                <field name="NUM">10</field>
+              </shadow>
+            </value>
+          </block>
+          <block type="math_constrain">
+            <value name="VALUE">
+              <shadow type="math_number">
+                <field name="NUM">50</field>
+              </shadow>
+            </value>
+            <value name="LOW">
+              <shadow type="math_number">
+                <field name="NUM">1</field>
+              </shadow>
+            </value>
+            <value name="HIGH">
+              <shadow type="math_number">
+                <field name="NUM">100</field>
+              </shadow>
+            </value>
+          </block>
+          <block type="math_random_int">
+            <value name="FROM">
+              <shadow type="math_number">
+                <field name="NUM">1</field>
+              </shadow>
+            </value>
+            <value name="TO">
+              <shadow type="math_number">
+                <field name="NUM">100</field>
+              </shadow>
+            </value>
+          </block>
+          <block type="math_random_float"></block>
+          <block type="math_atan2">
+            <value name="X">
+              <shadow type="math_number">
+                <field name="NUM">1</field>
+              </shadow>
+            </value>
+            <value name="Y">
+              <shadow type="math_number">
+                <field name="NUM">1</field>
+              </shadow>
+            </value>
+          </block>
+        </category>
+        <category name="Text" colour="%{BKY_TEXTS_HUE}">
+          <block type="text"></block>
+          <block type="text_join"></block>
+          <block type="text_append">
+            <value name="TEXT">
+              <shadow type="text"></shadow>
+            </value>
+          </block>
+          <block type="text_length">
+            <value name="VALUE">
+              <shadow type="text">
+                <field name="TEXT">abc</field>
+              </shadow>
+            </value>
+          </block>
+          <block type="text_isEmpty">
+            <value name="VALUE">
+              <shadow type="text">
+                <field name="TEXT"></field>
+              </shadow>
+            </value>
+          </block>
+          <block type="text_indexOf">
+            <value name="VALUE">
+              <block type="variables_get">
+                <field name="VAR">{textVariable}</field>
+              </block>
+            </value>
+            <value name="FIND">
+              <shadow type="text">
+                <field name="TEXT">abc</field>
+              </shadow>
+            </value>
+          </block>
+          <block type="text_charAt">
+            <value name="VALUE">
+              <block type="variables_get">
+                <field name="VAR">{textVariable}</field>
+              </block>
+            </value>
+          </block>
+          <block type="text_getSubstring">
+            <value name="STRING">
+              <block type="variables_get">
+                <field name="VAR">{textVariable}</field>
+              </block>
+            </value>
+          </block>
+          <block type="text_changeCase">
+            <value name="TEXT">
+              <shadow type="text">
+                <field name="TEXT">abc</field>
+              </shadow>
+            </value>
+          </block>
+          <block type="text_trim">
+            <value name="TEXT">
+              <shadow type="text">
+                <field name="TEXT">abc</field>
+              </shadow>
+            </value>
+          </block>
+          <block type="text_print">
+            <value name="TEXT">
+              <shadow type="text">
+                <field name="TEXT">abc</field>
+              </shadow>
+            </value>
+          </block>
+          <block type="text_prompt_ext">
+            <value name="TEXT">
+              <shadow type="text">
+                <field name="TEXT">abc</field>
+              </shadow>
+            </value>
+          </block>
+        </category>
+        <category name="Lists" colour="%{BKY_LISTS_HUE}">
+          <block type="lists_create_with">
+            <mutation items="0"></mutation>
+          </block>
+          <block type="lists_create_with"></block>
+          <block type="lists_repeat">
+            <value name="NUM">
+              <shadow type="math_number">
+                <field name="NUM">5</field>
+              </shadow>
+            </value>
+          </block>
+          <block type="lists_length"></block>
+          <block type="lists_isEmpty"></block>
+          <block type="lists_indexOf">
+            <value name="VALUE">
+              <block type="variables_get">
+                <field name="VAR">{listVariable}</field>
+              </block>
+            </value>
+          </block>
+          <block type="lists_getIndex">
+            <value name="VALUE">
+              <block type="variables_get">
+                <field name="VAR">{listVariable}</field>
+              </block>
+            </value>
+          </block>
+          <block type="lists_setIndex">
+            <value name="LIST">
+              <block type="variables_get">
+                <field name="VAR">{listVariable}</field>
+              </block>
+            </value>
+          </block>
+          <block type="lists_getSublist">
+            <value name="LIST">
+              <block type="variables_get">
+                <field name="VAR">{listVariable}</field>
+              </block>
+            </value>
+          </block>
+          <block type="lists_split">
+            <value name="DELIM">
+              <shadow type="text">
+                <field name="TEXT">,</field>
+              </shadow>
+            </value>
+          </block>
+          <block type="lists_sort"></block>
+        </category>
+        <category name="Colour" colour="%{BKY_COLOUR_HUE}">
+          <block type="colour_picker"></block>
+          <block type="colour_random"></block>
+          <block type="colour_rgb">
+            <value name="RED">
+              <shadow type="math_number">
+                <field name="NUM">100</field>
+              </shadow>
+            </value>
+            <value name="GREEN">
+              <shadow type="math_number">
+                <field name="NUM">50</field>
+              </shadow>
+            </value>
+            <value name="BLUE">
+              <shadow type="math_number">
+                <field name="NUM">0</field>
+              </shadow>
+            </value>
+          </block>
+          <block type="colour_blend">
+            <value name="COLOUR1">
+              <shadow type="colour_picker">
+                <field name="COLOUR">#ff0000</field>
+              </shadow>
+            </value>
+            <value name="COLOUR2">
+              <shadow type="colour_picker">
+                <field name="COLOUR">#3333ff</field>
+              </shadow>
+            </value>
+            <value name="RATIO">
+              <shadow type="math_number">
+                <field name="NUM">0.5</field>
+              </shadow>
+            </value>
+          </block>
+        </category>
+        <sep></sep>
+        <category name="Variables" colour="%{BKY_VARIABLES_HUE}" custom="VARIABLE"></category>
+        <category name="Functions" colour="%{BKY_PROCEDURES_HUE}" custom="PROCEDURE"></category>
+        <sep></sep>
+        <category name="Stocks" colour="%{BKY_LOOPS_HUE}">
+          <block type="stock_buy_simple"></block>
+          <block type="stock_buy_prog"></block>
+          <block type="stock_fetch_price"></block>
+        </category>
+      </xml>`,
+      zoom: {
+        controls: true,
+        wheel: true,
+      },
+      trashcan: true,
+    }; // eslint-disable-line prefer-const
     this.workspace = Blockly.inject(this.$refs.blocklyDiv, options);
+  },
+  methods: {
+    method(args) {
+      return this[args[0]](...args.slice(1));
+    },
+    run(a, b) {
+      console.log(a, b);
+    },
+    save() {
+      console.log('save');
+    },
+    debug() {
+      console.log('debug');
+    },
+    addFile() {
+      console.log('addFile');
+    },
+    openFile() {
+      console.log('openFile');
+    },
+    saveFileAs() {
+      console.log('saveFileAs');
+    },
   },
 };
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped>
+<style lang="css" scoped>
+.blockly-editor {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+}
+
 .blocklyDiv {
+  color: rgba(0, 0, 0, 1);
   height: 100%;
   width: 100%;
   text-align: left;
