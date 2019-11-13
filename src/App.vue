@@ -96,15 +96,15 @@
   </v-app>
 </template>
 
-<script>
+<script lang="ts">
+import Vue from 'vue';
 import BlocklyJS from 'blockly/javascript';
-import BlocklyComponent from './components/BlocklyComponent.vue';
-import './prompt';
-import './blocks';
+import BlocklyComponent from '@/components/BlocklyComponent.vue';
+import '@/prompt';
+import '@/blocks';
 
-
-export default {
-  name: 'app',
+export default Vue.extend({
+  name: 'App',
   components: { BlocklyComponent },
   props: { source: String },
   data: () => ({
@@ -139,14 +139,16 @@ export default {
     code: '',
   }),
   created() {
-    this.$vuetify.theme.dark = true;
+    const vuetify = this.$vuetify as any;
+    vuetify.theme.dark = true;
   },
   methods: {
     showCode() {
-      this.code = BlocklyJS.workspaceToCode(this.$refs.foo.workspace);
+      const foo = this.$refs.foo as any;
+      this.code = BlocklyJS.workspaceToCode(foo.workspace);
     },
   },
-};
+});
 </script>
 
 <style lang="css">

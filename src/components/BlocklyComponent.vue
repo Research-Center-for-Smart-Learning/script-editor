@@ -5,7 +5,7 @@
         <v-text-field label="Script Name"/>
       </v-col>
       <v-col>
-        <v-tooltip bottom v-for="item in button_items" :key="item.text">
+        <v-tooltip bottom v-for="item in buttonItems" :key="item.text">
           <template v-slot:activator="{ on: tooltip }">
             <v-btn icon x-large v-on="{ ...tooltip }" @click="method(item.method);">
               <v-icon x-large>{{ item.icon }}</v-icon>
@@ -22,23 +22,25 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
+import { Vue, Component, Prop } from 'vue-property-decorator';
 import Blockly from 'blockly';
 
-export default {
-  name: 'BlocklyComponent',
-  props: ['options'],
-  data: () => ({
-    workspace: null,
-    button_items: [
-      { icon: 'play_circle_filled', text: '運行', method: ['run', '123', '456'] },
-      { icon: 'save', text: '儲存', method: ['save'] },
-      { icon: 'bug_report', text: '偵錯', method: ['debug'] },
-      { icon: 'add_circle', text: '新增檔案', method: ['addFile'] },
-      { icon: 'folder_open', text: '開啟舊檔', method: ['openFile'] },
-      { icon: 'save_alt', text: '另存新檔', method: ['saveFileAs'] },
-    ],
-  }),
+@Component
+export default class BlocklyComponent extends Vue {
+  private workspace: object = {};
+
+  private buttonItems: Array<object> = [
+    { icon: 'play_circle_filled', text: '運行', method: ['run'] },
+    { icon: 'save', text: '儲存', method: ['save'] },
+    { icon: 'bug_report', text: '偵錯', method: ['debug'] },
+    { icon: 'add_circle', text: '新增檔案', method: ['addFile'] },
+    { icon: 'folder_open', text: '開啟舊檔', method: ['openFile'] },
+    { icon: 'save_alt', text: '另存新檔', method: ['saveFileAs'] },
+  ];
+
+  @Prop() private options!: object;
+
   mounted() {
     const options = this.$props.options || {
       grid: {
@@ -370,32 +372,38 @@ export default {
       },
       trashcan: true,
     }; // eslint-disable-line prefer-const
-    this.workspace = Blockly.inject(this.$refs.blocklyDiv, options);
-  },
-  methods: {
-    method(args) {
-      return this[args[0]](...args.slice(1));
-    },
-    run(a, b) {
-      console.log(a, b);
-    },
-    save() {
-      console.log('save');
-    },
-    debug() {
-      console.log('debug');
-    },
-    addFile() {
-      console.log('addFile');
-    },
-    openFile() {
-      console.log('openFile');
-    },
-    saveFileAs() {
-      console.log('saveFileAs');
-    },
-  },
-};
+    const blocklyDiv = this.$refs.blocklyDiv as HTMLElement;
+    this.workspace = Blockly.inject(blocklyDiv, options);
+  }
+
+  method(args: string[]) {
+    return this[args[0]](...args.slice(1));
+  }
+
+  run() {
+    console.log('run', this.$el);
+  }
+
+  save() {
+    console.log('save', this.$el);
+  }
+
+  debug() {
+    console.log('debug', this.$el);
+  }
+
+  addFile() {
+    console.log('addFile', this.$el);
+  }
+
+  openFile() {
+    console.log('openFile', this.$el);
+  }
+
+  saveFileAs() {
+    console.log('saveFileAs', this.$el);
+  }
+}
 </script>
 
 <style lang="css" scoped>

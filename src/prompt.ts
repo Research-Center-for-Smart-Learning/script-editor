@@ -21,7 +21,7 @@
  * @author abbychau@gmail.com (Abby Chau)
  */
 import * as Blockly from 'blockly/core';
-import Swal from 'sweetalert2';
+import Swal from 'sweetalert2'; // eslint-disable-line
 
 const renameVar = function renameVar(name) {
   return name;
