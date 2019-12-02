@@ -54,7 +54,7 @@
           color="white"
           hide-details
         />
-        <v-tooltip bottom v-for="item in nav_items" :key="item.text">
+        <v-tooltip bottom v-for="item in navItems" :key="item.text">
           <template v-slot:activator="{ on }">
             <v-btn icon v-on="on">
               <v-icon>{{ item.icon }}</v-icon>
@@ -74,7 +74,7 @@
             </v-tooltip>
           </template>
           <v-list>
-            <v-list-item v-for="item in user_dropdown.items" :key="item.text">
+            <v-list-item v-for="item in userDropdown.items" :key="item.text">
               <v-list-item-action>
                 <v-icon>{{ item.icon }}</v-icon>
               </v-list-item-action>
@@ -90,65 +90,60 @@
 
     <v-content>
       <v-container class="fill-height">
-        <BlocklyComponent ref="foo"></BlocklyComponent>
+        <BlocklyComponent ref="blockly"></BlocklyComponent>
       </v-container>
     </v-content>
   </v-app>
 </template>
 
 <script lang="ts">
-import Vue from 'vue';
-import BlocklyJS from 'blockly/javascript';
+import {
+  Vue, Component, Prop, Watch,
+} from 'vue-property-decorator';
 import BlocklyComponent from '@/components/BlocklyComponent.vue';
-import '@/prompt';
-import '@/blocks';
 
-export default Vue.extend({
-  name: 'App',
+@Component({
   components: { BlocklyComponent },
-  props: { source: String },
-  data: () => ({
-    drawer: null,
+})
+export default class App extends Vue {
+  private drawer: object | null = null;
+
+  private items: Array<Object> = [
+    { icon: 'subscriptions', text: '腳本集' },
+    { icon: 'chrome_reader_mode', text: '腳本編輯' },
+    { icon: 'device_hub', text: '我的設備' },
+    { icon: 'featured_play_list', text: '使用手冊' },
+    { icon: 'language', text: '語言' },
+    { icon: 'info', text: '系統資訊' },
+  ];
+
+  private navItems: Array<Object> = [
+    { icon: 'subscriptions', text: '腳本集' },
+    { icon: 'chrome_reader_mode', text: '腳本編輯' },
+  ];
+
+  private userDropdown: Object = {
+    menu_icon: 'person',
     items: [
-      { icon: 'subscriptions', text: '腳本集' },
-      { icon: 'chrome_reader_mode', text: '腳本編輯' },
-      { icon: 'device_hub', text: '我的設備' },
-      { icon: 'featured_play_list', text: '使用手冊' },
-      { icon: 'language', text: '語言' },
-      { icon: 'info', text: '系統資訊' },
+      { icon: 'person', text: '個人資訊' },
+      { icon: 'recent_actors', text: '我的腳本' },
+      { icon: 'exit_to_app', text: '登入' },
     ],
-    nav_items: [
-      { icon: 'subscriptions', text: '腳本集' },
-      { icon: 'chrome_reader_mode', text: '腳本編輯' },
-    ],
-    user_dropdown: {
-      menu_icon: 'person',
-      items: [
-        { icon: 'person', text: '個人資訊' },
-        { icon: 'recent_actors', text: '我的腳本' },
-        { icon: 'exit_to_app', text: '登入' },
-      ],
-    },
-    items2: [
-      { picture: 28, text: 'Joseph' },
-      { picture: 38, text: 'Apple' },
-      { picture: 48, text: 'Xbox Ahoy' },
-      { picture: 58, text: 'Nokia' },
-      { picture: 78, text: 'MKBHD' },
-    ],
-    code: '',
-  }),
+  };
+
+  private items2: Array<Object> = [
+    { picture: 28, text: 'Joseph' },
+    { picture: 38, text: 'Apple' },
+    { picture: 48, text: 'Xbox Ahoy' },
+    { picture: 58, text: 'Nokia' },
+    { picture: 78, text: 'MKBHD' },
+  ];
+
   created() {
     const vuetify = this.$vuetify as any;
     vuetify.theme.dark = true;
-  },
-  methods: {
-    showCode() {
-      const foo = this.$refs.foo as any;
-      this.code = BlocklyJS.workspaceToCode(foo.workspace);
-    },
-  },
-});
+  }
+}
 </script>
 
 <style lang="css">

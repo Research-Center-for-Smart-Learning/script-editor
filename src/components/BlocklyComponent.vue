@@ -75,9 +75,7 @@ import { promises as fs } from 'fs';
 
 @Component
 export default class BlocklyComponent extends Vue {
-  $electron: any;
-
-  private workspace: Blockly.Workspace;
+  private workspace!: Blockly.Workspace;
 
   private projectName: string = '';
 
@@ -504,10 +502,10 @@ export default class BlocklyComponent extends Vue {
         'openDirectory',
         'promptToCreate', // Windows only
       ],
-    }, (paths) => {
+    }, (paths: Array<string>) => {
       if (paths.length > 0) {
-        this.projectPath = paths.shift();
-        this.projectName = this.projectPath.split('/').pop();
+        this.projectPath = paths.shift() || '';
+        this.projectName = this.projectPath.split('/').pop() || '';
         this.load();
       }
     });
@@ -520,9 +518,9 @@ export default class BlocklyComponent extends Vue {
           'openDirectory',
           'promptToCreate', // Windows only
         ],
-      }, (paths) => {
+      }, (paths: Array<string>) => {
         if (paths.length > 0) {
-          this.projectPath = `${paths.shift()}/${this.projectName}`;
+          this.projectPath = `${paths.shift()}/${this.projectName}` || '';
         }
       });
     }
@@ -534,8 +532,8 @@ export default class BlocklyComponent extends Vue {
   saveProjectAs() {
     this.$electron.remote.dialog.showSaveDialog().then((result) => {
       if (result.canceled === false) {
-        this.projectPath = result.filePath;
-        this.projectName = this.projectPath.split('/').pop();
+        this.projectPath = result.filePath || '';
+        this.projectName = this.projectPath.split('/').pop() || '';
         this.save();
       }
     });
