@@ -75,7 +75,9 @@ import { promises as fs } from 'fs';
 
 @Component
 export default class BlocklyComponent extends Vue {
-  private workspace: Workspace;
+  $electron: any;
+
+  private workspace: Blockly.Workspace;
 
   private projectName: string = '';
 
