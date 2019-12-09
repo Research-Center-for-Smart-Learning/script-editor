@@ -1,26 +1,10 @@
 <template>
   <div class="blockly-editor">
+    <v-row cols="4" class="offset-1">
+      {{ projectPath }}
+    </v-row>
     <v-row>
-      <v-col cols="4" class="offset-1">
-        <v-text-field v-model="projectName" :label="saved ? '' : '* ' + 'Project Name'"/>
-      </v-col>
       <v-col>
-        <v-tooltip bottom>
-          <template v-slot:activator="{ on: tooltip }">
-            <v-btn icon x-large v-on="{ ...tooltip }" @click="run();">
-              <v-icon x-large>play_circle_filled</v-icon>
-            </v-btn>
-          </template>
-          <span>運行</span>
-        </v-tooltip>
-        <v-tooltip bottom>
-          <template v-slot:activator="{ on: tooltip }">
-            <v-btn icon x-large v-on="{ ...tooltip }" @click="debug();">
-              <v-icon x-large>bug_report</v-icon>
-            </v-btn>
-          </template>
-          <span>偵錯</span>
-        </v-tooltip>
         <v-tooltip bottom>
           <template v-slot:activator="{ on: tooltip }">
             <v-btn icon x-large v-on="{ ...tooltip }" @click="newProject();">
@@ -33,7 +17,7 @@
           <template v-slot:activator="{ on: tooltip }">
             <v-btn icon x-large
               v-on="{ ...tooltip }"
-              :disabled="projectName === ''"
+              :disabled="changed === false"
               @click="saveProject();">
               <v-icon x-large>save</v-icon>
             </v-btn>
@@ -56,51 +40,53 @@
           </template>
           <span>另存新專案</span>
         </v-tooltip>
+        <v-tooltip bottom>
+          <template v-slot:activator="{ on: tooltip }">
+            <v-btn icon x-large v-on="{ ...tooltip }" @click="importProject();">
+              <v-icon x-large>perm_media</v-icon>
+            </v-btn>
+          </template>
+          <span>匯入專案</span>
+        </v-tooltip>
+        |
+        <v-tooltip bottom>
+          <template v-slot:activator="{ on: tooltip }">
+            <v-btn icon x-large v-on="{ ...tooltip }" @click="workspace.undo(false);">
+              <v-icon x-large>undo</v-icon>
+            </v-btn>
+          </template>
+          <span>上一步</span>
+        </v-tooltip>
+        <v-tooltip bottom>
+          <template v-slot:activator="{ on: tooltip }">
+            <v-btn icon x-large v-on="{ ...tooltip }" @click="workspace.undo(true);">
+              <v-icon x-large>redo</v-icon>
+            </v-btn>
+          </template>
+          <span>下一步</span>
+        </v-tooltip>
+        |
+        <v-tooltip bottom>
+          <template v-slot:activator="{ on: tooltip }">
+            <v-btn icon x-large v-on="{ ...tooltip }" @click="run();">
+              <v-icon x-large>play_circle_filled</v-icon>
+            </v-btn>
+          </template>
+          <span>運行</span>
+        </v-tooltip>
+        <v-tooltip bottom>
+          <template v-slot:activator="{ on: tooltip }">
+            <v-btn icon x-large v-on="{ ...tooltip }" @click="debug();">
+              <v-icon x-large>bug_report</v-icon>
+            </v-btn>
+          </template>
+          <span>偵錯</span>
+        </v-tooltip>
       </v-col>
     </v-row>
-    <div class="blocklyDiv" ref="blocklyDiv"></div>
-    <xml ref="blocklyToolbox" style="display:none">
-      <slot></slot>
-    </xml>
-  </div>
-</template>
-
-<script lang="ts">
-import {
-  Vue, Component, Prop, Watch,
-} from 'vue-property-decorator';
-import Blockly from 'blockly';
-import BlocklyPy from 'blockly/python';
-import { promises as fs } from 'fs';
-
-@Component
-export default class BlocklyComponent extends Vue {
-  private workspace!: Blockly.Workspace;
-
-  private projectName: string = '';
-
-  private projectPath: string = '';
-
-  private saved: boolean = false;
-
-  @Prop() private options!: object;
-
-  @Watch('projectName')
-  onProjectNameChanged(val: string, oldVal: string) {
-    this.saved = false;
-    this.projectPath = `${this.projectPath.split('/').slice(0, -1).join('/')}/${this.projectName}`;
-  }
-
-  mounted() {
-    const options = this.$props.options || {
-      grid: {
-        spacing: 25,
-        length: 3,
-        colour: '#ccc',
-        snap: true,
-      },
-      toolbox:
-      `<xml xmlns="https://developers.google.com/blockly/xml" id="toolbox" style="display: none">
+    <div ref="blocklyDiv" id="blocklyDiv"></div>
+    <xml ref="blocklyToolboxXml" style="display: none">
+      <slot>
         <category name="Logic" colour="%{BKY_LOGIC_HUE}">
           <block type="controls_if"></block>
           <block type="logic_compare"></block>
@@ -415,21 +401,50 @@ export default class BlocklyComponent extends Vue {
           <block type="stock_buy_prog"></block>
           <block type="stock_fetch_price"></block>
         </category>
-      </xml>`,
+      </slot>
+    </xml>
+  </div>
+</template>
+
+<script lang="ts">
+import {
+  Vue, Component, Prop, Watch,
+} from 'vue-property-decorator';
+import Blockly from 'blockly';
+import BlocklyPy from 'blockly/python';
+import { promises as fs } from 'fs';
+
+@Component
+export default class BlocklyComponent extends Vue {
+  private workspace!: Blockly.WorkspaceSvg;
+
+  private projectPath: string = '';
+
+  private changed: boolean = false;
+
+  @Prop() private options!: object;
+
+  mounted() {
+    this.workspace = Blockly.inject(this.$refs.blocklyDiv as HTMLElement, this.$props.options || {
+      grid: {
+        spacing: 25,
+        length: 3,
+        colour: '#ccc',
+        snap: true,
+      },
+      toolbox: this.$refs.blocklyToolboxXml as HTMLElement,
       zoom: {
         controls: true,
         wheel: true,
       },
       trashcan: true,
-    }; // eslint-disable-line prefer-const
-    const blocklyDiv = this.$refs.blocklyDiv as HTMLElement;
-    this.workspace = Blockly.inject(blocklyDiv, options);
-    this.workspace.addChangeListener(this.saveMonitor);
+    }) as Blockly.WorkspaceSvg;
+    this.workspace.addChangeListener(this.changesMonitor);
   }
 
-  async load() {
+  async load(path: string) {
     try {
-      const data = await fs.readFile(`${this.projectPath}/script/script.xml`);
+      const data = await fs.readFile(`${path}/script/script.xml`);
       const dom = Blockly.Xml.textToDom(data as any);
       this.workspace.clear();
       Blockly.Xml.domToWorkspace(dom, this.workspace);
@@ -438,47 +453,30 @@ export default class BlocklyComponent extends Vue {
     }
   }
 
-  async save() {
+  async save(path) {
     try {
-      await fs.stat(`${this.projectPath}`).catch(async (err) => {
-        if (err.code === 'ENOENT') {
-          await fs.mkdir(`${this.projectPath}`);
-        }
-      });
-      await fs.stat(`${this.projectPath}/script`).catch(async (err) => {
-        if (err.code === 'ENOENT') {
-          await fs.mkdir(`${this.projectPath}/script`);
-        }
-      });
-      await fs.stat(`${this.projectPath}/media`).catch(async (err) => {
-        if (err.code === 'ENOENT') {
-          await fs.mkdir(`${this.projectPath}/media`);
-        }
-      });
-      await fs.stat(`${this.projectPath}/media`).catch(async (err) => {
-        if (err.code === 'ENOENT') {
-          await fs.mkdir(`${this.projectPath}/media`);
-        }
-      });
+      await this.$createIfNotExists(`${path}`);
+      await this.$createIfNotExists(`${path}/script`);
+      await this.$createIfNotExists(`${path}/media`);
 
       const dom = Blockly.Xml.workspaceToDom(this.workspace);
       const data = Blockly.Xml.domToText(dom);
-      await fs.writeFile(`${this.projectPath}/script/script.xml`, data);
+      await fs.writeFile(`${path}/script/script.xml`, data);
       const pythonData = BlocklyPy.workspaceToCode(this.workspace);
-      await fs.writeFile(`${this.projectPath}/script/script.py`, pythonData);
-      this.saved = true;
+      await fs.writeFile(`${path}/script/script.py`, pythonData);
+      this.changed = false;
     } catch (e) {
       console.error(e);
     }
   }
 
-  saveMonitor(event) {
-    if (event.blockId !== null && this.saved === true) {
-      this.saved = false;
+  changesMonitor(event) {
+    if (event.blockId !== null && this.changed === false) {
+      this.changed = true;
     }
 
     if (event.type === 'finished_loading') {
-      this.saved = true;
+      this.changed = false;
     }
   }
 
@@ -490,59 +488,112 @@ export default class BlocklyComponent extends Vue {
     console.log('debug', this.$el);
   }
 
-  newProject() {
-    this.projectPath = '';
-    this.projectName = '';
-    this.workspace.clear();
-  }
-
-  openProject() {
-    this.$electron.remote.dialog.showOpenDialog({
+  async newProject() {
+    await this.savePath({
+      defaultPath: this.$projectRoot,
       properties: [
         'openDirectory',
         'promptToCreate', // Windows only
       ],
-    }, (paths: Array<string>) => {
-      if (paths.length > 0) {
-        this.projectPath = paths.shift() || '';
-        this.projectName = this.projectPath.split('/').pop() || '';
-        this.load();
+      filters: [
+        { name: 'Script Editor Project (*.seprj)', extensions: ['seprj'] },
+      ],
+    }).then((path: string) => {
+      this.workspace.clear();
+      if (path.endsWith('.seprj') === false) {
+        this.projectPath = `${path}.seprj`;
       }
+    });
+  }
+
+  async openProject() {
+    await this.openPath({
+      defaultPath: this.$projectRoot,
+      properties: [
+        'openDirectory',
+        'promptToCreate', // Windows only
+      ],
+      filters: [
+        { name: 'Script Editor Project (*.seprj)', extensions: ['seprj'] },
+      ],
+    }).then((path: string) => {
+      this.projectPath = path;
+      this.load(path);
     });
   }
 
   async saveProject() {
     if (this.projectPath === '') {
-      await this.$electron.remote.dialog.showOpenDialog({
+      await this.savePath({
+        defaultPath: this.$projectRoot,
         properties: [
           'openDirectory',
           'promptToCreate', // Windows only
         ],
-      }, (paths: Array<string>) => {
-        if (paths.length > 0) {
-          this.projectPath = `${paths.shift()}/${this.projectName}` || '';
-        }
+        filters: [
+          { name: 'Script Editor Project (*.seprj)', extensions: ['seprj'] },
+        ],
+      }).then((path: string) => {
+        this.projectPath = path;
       });
-    }
-    if (this.projectPath !== '' && this.projectName !== '') {
-      this.save();
+    } else {
+      if (this.projectPath.endsWith('.seprj') === false) {
+        this.projectPath = `${this.projectPath}.seprj`;
+      }
+      this.save(this.projectPath);
     }
   }
 
-  saveProjectAs() {
-    this.$electron.remote.dialog.showSaveDialog().then((result) => {
-      if (result.canceled === false) {
-        this.projectPath = result.filePath || '';
-        this.projectName = this.projectPath.split('/').pop() || '';
-        this.save();
+  async saveProjectAs() {
+    await this.savePath({
+      defaultPath: this.$projectRoot,
+      properties: [
+        'openDirectory',
+        'promptToCreate', // Windows only
+      ],
+      filters: [
+        { name: 'Script Editor Project (*.seprj)', extensions: ['seprj'] },
+      ],
+    }).then((path: string) => {
+      if (path.endsWith('.seprj') === false) {
+        this.projectPath = `${path}.seprj`;
       }
+      this.save(this.projectPath);
     });
+  }
+
+  async importProject() {
+    await this.openPath({
+      defaultPath: this.$projectRoot,
+      properties: [
+        'openDirectory',
+        'promptToCreate', // Windows only
+      ],
+      filters: [
+        { name: 'Script Editor Project (*.seprj)', extensions: ['seprj'] },
+      ],
+    }).then((path: string) => {
+      this.load(path);
+    });
+  }
+
+  savePath(options: object | null): Promise<string> {
+    return new Promise((resolve, reject) => this.$electron.remote.dialog.showSaveDialog(options)
+      .then(result => (
+        result.canceled === false ? resolve(result.filePath) : reject(result))));
+  }
+
+  openPath(options: object | null): Promise<string> {
+    return new Promise((resolve, reject) => this.$electron.remote.dialog.showOpenDialog(options)
+      .then(result => (
+        result.canceled === false ? resolve(result.filePaths.shift()) : reject(result))));
   }
 }
 </script>
 
 <style lang="css" scoped>
 .blockly-editor {
+  z-index: 1;
   position: absolute;
   left: 0;
   bottom: 0;
@@ -550,9 +601,9 @@ export default class BlocklyComponent extends Vue {
   height: 100%;
 }
 
-.blocklyDiv {
+#blocklyDiv {
   color: rgba(0, 0, 0, 1);
-  height: 100%;
+  height: 88vh;
   width: 100%;
   text-align: left;
 }

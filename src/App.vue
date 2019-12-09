@@ -139,7 +139,9 @@ export default class App extends Vue {
     { picture: 78, text: 'MKBHD' },
   ];
 
-  created() {
+  async created() {
+    await this.$createIfNotExists(this.$defaultSaveRoot);
+    await this.$createIfNotExists(this.$projectRoot);
     const vuetify = this.$vuetify as any;
     vuetify.theme.dark = true;
   }
@@ -157,5 +159,4 @@ export default class App extends Vue {
 html, body {
   margin: 0;
 }
-
 </style>
