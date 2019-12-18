@@ -1,89 +1,5 @@
 <template>
-  <div class="blockly-editor">
-    <v-row cols="4" class="offset-1">
-      {{ projectPath }}
-    </v-row>
-    <v-row>
-      <v-col>
-        <v-tooltip bottom>
-          <template v-slot:activator="{ on: tooltip }">
-            <v-btn icon x-large v-on="{ ...tooltip }" @click="newProject();">
-              <v-icon x-large>add_circle</v-icon>
-            </v-btn>
-          </template>
-          <span>新增專案</span>
-        </v-tooltip>
-        <v-tooltip bottom>
-          <template v-slot:activator="{ on: tooltip }">
-            <v-btn icon x-large
-              v-on="{ ...tooltip }"
-              :disabled="changed === false"
-              @click="saveProject();">
-              <v-icon x-large>save</v-icon>
-            </v-btn>
-          </template>
-          <span>儲存專案</span>
-        </v-tooltip>
-        <v-tooltip bottom>
-          <template v-slot:activator="{ on: tooltip }">
-            <v-btn icon x-large v-on="{ ...tooltip }" @click="openProject();">
-              <v-icon x-large>folder_open</v-icon>
-            </v-btn>
-          </template>
-          <span>開啟專案</span>
-        </v-tooltip>
-        <v-tooltip bottom>
-          <template v-slot:activator="{ on: tooltip }">
-            <v-btn icon x-large v-on="{ ...tooltip }" @click="saveProjectAs();">
-              <v-icon x-large>save_alt</v-icon>
-            </v-btn>
-          </template>
-          <span>另存新專案</span>
-        </v-tooltip>
-        <v-tooltip bottom>
-          <template v-slot:activator="{ on: tooltip }">
-            <v-btn icon x-large v-on="{ ...tooltip }" @click="importProject();">
-              <v-icon x-large>perm_media</v-icon>
-            </v-btn>
-          </template>
-          <span>匯入專案</span>
-        </v-tooltip>
-        |
-        <v-tooltip bottom>
-          <template v-slot:activator="{ on: tooltip }">
-            <v-btn icon x-large v-on="{ ...tooltip }" @click="workspace.undo(false);">
-              <v-icon x-large>undo</v-icon>
-            </v-btn>
-          </template>
-          <span>上一步</span>
-        </v-tooltip>
-        <v-tooltip bottom>
-          <template v-slot:activator="{ on: tooltip }">
-            <v-btn icon x-large v-on="{ ...tooltip }" @click="workspace.undo(true);">
-              <v-icon x-large>redo</v-icon>
-            </v-btn>
-          </template>
-          <span>下一步</span>
-        </v-tooltip>
-        |
-        <v-tooltip bottom>
-          <template v-slot:activator="{ on: tooltip }">
-            <v-btn icon x-large v-on="{ ...tooltip }" @click="run();">
-              <v-icon x-large>play_circle_filled</v-icon>
-            </v-btn>
-          </template>
-          <span>運行</span>
-        </v-tooltip>
-        <v-tooltip bottom>
-          <template v-slot:activator="{ on: tooltip }">
-            <v-btn icon x-large v-on="{ ...tooltip }" @click="debug();">
-              <v-icon x-large>bug_report</v-icon>
-            </v-btn>
-          </template>
-          <span>偵錯</span>
-        </v-tooltip>
-      </v-col>
-    </v-row>
+  <div class="blockly">
     <div ref="blocklyDiv" id="blocklyDiv"></div>
     <xml ref="blocklyToolboxXml" style="display: none">
       <slot>
@@ -416,11 +332,9 @@ import { promises as fs } from 'fs';
 
 @Component
 export default class BlocklyComponent extends Vue {
-  private workspace!: Blockly.WorkspaceSvg;
+  public workspace!: Blockly.WorkspaceSvg;
 
-  private projectPath: string = '';
-
-  private changed: boolean = false;
+  @Prop() private changed: boolean = false;
 
   @Prop() private options!: object;
 
@@ -442,10 +356,9 @@ export default class BlocklyComponent extends Vue {
     this.workspace.addChangeListener(this.changesMonitor);
   }
 
-  async load(path: string) {
+  loadData(data: string) {
     try {
-      const data = await fs.readFile(`${path}/script/script.xml`);
-      const dom = Blockly.Xml.textToDom(data as any);
+      const dom = Blockly.Xml.textToDom(data);
       this.workspace.clear();
       Blockly.Xml.domToWorkspace(dom, this.workspace);
     } catch (e) {
@@ -453,30 +366,21 @@ export default class BlocklyComponent extends Vue {
     }
   }
 
-  async save(path) {
-    try {
-      await this.$createIfNotExists(`${path}`);
-      await this.$createIfNotExists(`${path}/script`);
-      await this.$createIfNotExists(`${path}/media`);
-
-      const dom = Blockly.Xml.workspaceToDom(this.workspace);
-      const data = Blockly.Xml.domToText(dom);
-      await fs.writeFile(`${path}/script/script.xml`, data);
-      const pythonData = BlocklyPy.workspaceToCode(this.workspace);
-      await fs.writeFile(`${path}/script/script.py`, pythonData);
-      this.changed = false;
-    } catch (e) {
-      console.error(e);
-    }
+  saveData() {
+    const dom = Blockly.Xml.workspaceToDom(this.workspace);
+    return {
+      dom: Blockly.Xml.domToText(dom),
+      py: BlocklyPy.workspaceToCode(this.workspace),
+    };
   }
 
   changesMonitor(event) {
     if (event.blockId !== null && this.changed === false) {
-      this.changed = true;
+      this.$emit('changed', true);
     }
 
     if (event.type === 'finished_loading') {
-      this.changed = false;
+      this.$emit('changed', false);
     }
   }
 
@@ -487,113 +391,11 @@ export default class BlocklyComponent extends Vue {
   debug() {
     console.log('debug', this.$el);
   }
-
-  async newProject() {
-    await this.savePath({
-      defaultPath: this.$projectRoot,
-      properties: [
-        'openDirectory',
-        'promptToCreate', // Windows only
-      ],
-      filters: [
-        { name: 'Script Editor Project (*.seprj)', extensions: ['seprj'] },
-      ],
-    }).then((path: string) => {
-      this.workspace.clear();
-      if (path.endsWith('.seprj') === false) {
-        this.projectPath = `${path}.seprj`;
-      }
-    });
-  }
-
-  async openProject() {
-    await this.openPath({
-      defaultPath: this.$projectRoot,
-      properties: [
-        'openDirectory',
-        'promptToCreate', // Windows only
-      ],
-      filters: [
-        { name: 'Script Editor Project (*.seprj)', extensions: ['seprj'] },
-      ],
-    }).then((path: string) => {
-      this.projectPath = path;
-      this.load(path);
-    });
-  }
-
-  async saveProject() {
-    if (this.projectPath === '') {
-      await this.savePath({
-        defaultPath: this.$projectRoot,
-        properties: [
-          'openDirectory',
-          'promptToCreate', // Windows only
-        ],
-        filters: [
-          { name: 'Script Editor Project (*.seprj)', extensions: ['seprj'] },
-        ],
-      }).then((path: string) => {
-        this.projectPath = path;
-      });
-    } else {
-      if (this.projectPath.endsWith('.seprj') === false) {
-        this.projectPath = `${this.projectPath}.seprj`;
-      }
-      this.save(this.projectPath);
-    }
-  }
-
-  async saveProjectAs() {
-    await this.savePath({
-      defaultPath: this.$projectRoot,
-      properties: [
-        'openDirectory',
-        'promptToCreate', // Windows only
-      ],
-      filters: [
-        { name: 'Script Editor Project (*.seprj)', extensions: ['seprj'] },
-      ],
-    }).then((path: string) => {
-      if (path.endsWith('.seprj') === false) {
-        this.projectPath = `${path}.seprj`;
-      }
-      this.save(this.projectPath);
-    });
-  }
-
-  async importProject() {
-    await this.openPath({
-      defaultPath: this.$projectRoot,
-      properties: [
-        'openDirectory',
-        'promptToCreate', // Windows only
-      ],
-      filters: [
-        { name: 'Script Editor Project (*.seprj)', extensions: ['seprj'] },
-      ],
-    }).then((path: string) => {
-      this.load(path);
-    });
-  }
-
-  savePath(options: object | null): Promise<string> {
-    return new Promise((resolve, reject) => this.$electron.remote.dialog.showSaveDialog(options)
-      .then(result => (
-        result.canceled === false ? resolve(result.filePath) : reject(result))));
-  }
-
-  openPath(options: object | null): Promise<string> {
-    return new Promise((resolve, reject) => this.$electron.remote.dialog.showOpenDialog(options)
-      .then(result => (
-        result.canceled === false ? resolve(result.filePaths.shift()) : reject(result))));
-  }
 }
 </script>
 
 <style lang="css" scoped>
 .blockly-editor {
-  z-index: 1;
   position: absolute;
   left: 0;
   bottom: 0;
@@ -603,7 +405,7 @@ export default class BlocklyComponent extends Vue {
 
 #blocklyDiv {
   color: rgba(0, 0, 0, 1);
-  height: 88vh;
+  height: 87vh;
   width: 100%;
   text-align: left;
 }

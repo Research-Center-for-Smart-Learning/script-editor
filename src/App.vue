@@ -2,7 +2,7 @@
   <v-app id="inspire">
     <v-navigation-drawer v-model="drawer" app clipped>
       <v-list dense>
-        <v-list-item v-for="item in items" :key="item.text" link>
+        <v-list-item v-for="item in items" :key="item.text" :to="{ name: item.url }" link>
           <v-list-item-action>
             <v-icon>{{ item.icon }}</v-icon>
           </v-list-item-action>
@@ -56,7 +56,7 @@
         />
         <v-tooltip bottom v-for="item in navItems" :key="item.text">
           <template v-slot:activator="{ on }">
-            <v-btn icon v-on="on">
+            <v-btn icon v-on="on" :to="{ name: item.url }">
               <v-icon>{{ item.icon }}</v-icon>
             </v-btn>
           </template>
@@ -73,8 +73,12 @@
               <span>個人資訊</span>
             </v-tooltip>
           </template>
-          <v-list>
-            <v-list-item v-for="item in userDropdown.items" :key="item.text">
+          <v-list dense>
+            <v-list-item
+              v-for="item in userDropdown.items"
+              :key="item.text"
+              :to="{ name: item.url }" link
+            >
               <v-list-item-action>
                 <v-icon>{{ item.icon }}</v-icon>
               </v-list-item-action>
@@ -88,10 +92,8 @@
         </v-menu>
     </v-app-bar>
 
-    <v-content>
-      <v-container class="fill-height">
-        <BlocklyComponent ref="blockly"></BlocklyComponent>
-      </v-container>
+    <v-content style="z-index: 1;">
+      <router-view/>
     </v-content>
   </v-app>
 </template>
@@ -100,34 +102,36 @@
 import {
   Vue, Component, Prop, Watch,
 } from 'vue-property-decorator';
-import BlocklyComponent from '@/components/BlocklyComponent.vue';
+import Editor from '@/views/Editor.vue';
+import './prompt';
+import './blocks';
 
 @Component({
-  components: { BlocklyComponent },
+  components: { Editor },
 })
 export default class App extends Vue {
   private drawer: object | null = null;
 
   private items: Array<Object> = [
-    { icon: 'subscriptions', text: '腳本集' },
-    { icon: 'chrome_reader_mode', text: '腳本編輯' },
-    { icon: 'device_hub', text: '我的設備' },
-    { icon: 'featured_play_list', text: '使用手冊' },
-    { icon: 'language', text: '語言' },
-    { icon: 'info', text: '系統資訊' },
+    { icon: 'subscriptions', text: '腳本集', url: 'script-list' },
+    { icon: 'chrome_reader_mode', text: '腳本編輯', url: 'editor' },
+    { icon: 'device_hub', text: '我的設備', url: 'equipment' },
+    { icon: 'featured_play_list', text: '使用手冊', url: 'manual' },
+    { icon: 'language', text: '語言', url: 'language' },
+    { icon: 'info', text: '系統資訊', url: 'system-info' },
   ];
 
   private navItems: Array<Object> = [
-    { icon: 'subscriptions', text: '腳本集' },
-    { icon: 'chrome_reader_mode', text: '腳本編輯' },
+    { icon: 'subscriptions', text: '腳本集', url: 'script-list' },
+    { icon: 'chrome_reader_mode', text: '腳本編輯', url: 'editor' },
   ];
 
   private userDropdown: Object = {
     menu_icon: 'person',
     items: [
-      { icon: 'person', text: '個人資訊' },
-      { icon: 'recent_actors', text: '我的腳本' },
-      { icon: 'exit_to_app', text: '登入' },
+      { icon: 'person', text: '個人資訊', url: 'userinfo' },
+      { icon: 'recent_actors', text: '我的腳本', url: 'my-script' },
+      { icon: 'exit_to_app', text: '登入', url: 'login' },
     ],
   };
 
